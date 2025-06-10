@@ -7,6 +7,11 @@ interface MessageListProps {
 export default function MessageList({ messages }: MessageListProps) {
   return (
     <div className="space-y-4">
+      {messages.length === 0 && (
+        <div className="text-center text-gray-500 py-8">
+          Start a conversation with Gwen and Steve! 🏠
+        </div>
+      )}
       {messages.map((message) => (
         <div
           key={message.id}
