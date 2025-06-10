@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { GoogleSheetsClient } from "@/lib/sheets/client";
 import { HousewarmingAgent } from "@/lib/chat/agent";
 
