@@ -77,7 +77,8 @@ export class HousewarmingAgent {
         func: async () => {
           const gifts = await this.sheetsClient.getGiftList();
           const availableGifts = gifts.filter((gift) => {
-            const remainingQuantity = gift.quantity - (gift.reserved ? 1 : 0);
+            const remainingQuantity =
+              gift.quantityNeeded - gift.quantityReserved;
             return remainingQuantity > 0;
           });
           return JSON.stringify(availableGifts);
@@ -86,11 +87,16 @@ export class HousewarmingAgent {
       new DynamicTool({
         name: "reserveGift",
         description:
-          "Reserve a gift for a guest. Use this when someone wants to get a specific gift. Input should be the giftId, quantity (if applicable), and the guest's name, e.g., '1, 1, John Doe'. Always ask for the guest's name before calling this tool.",
+          "Reserve a gift for a guest. Use this when someone wants to get a specific gift. Input should be the giftId, quantity (if applicable), and the guest's name, e.g., '1, 1, John Doe'. Always ask for the guest's name and quantity before calling this tool.",
         func: async (input: string) => {
-          const [giftId, quantity, guestName] = input
+          const [giftId, quantityStr, guestName] = input
             .split(",")
             .map((s: string) => s.trim());
+
+          const quantity = parseInt(quantityStr);
+          if (isNaN(quantity) || quantity <= 0) {
+            return "Please provide a valid quantity to reserve.";
+          }
 
           const gifts = await this.sheetsClient.getGiftList();
           const gift = gifts.find((g) => g.id === giftId);
@@ -99,13 +105,14 @@ export class HousewarmingAgent {
             return "I'm sorry, I couldn't find that gift in our list.";
           }
 
-          const remainingQuantity = gift.quantity - (gift.reserved ? 1 : 0);
-          if (remainingQuantity <= 0) {
-            return "I'm sorry, but this gift has already been fully reserved.";
+          const remainingQuantity = gift.quantityNeeded - gift.quantityReserved;
+
+          if (quantity > remainingQuantity) {
+            return `I'm sorry, but you can only reserve up to ${remainingQuantity} of ${gift.name}.`;
           }
 
-          await this.sheetsClient.updateGiftStatus(giftId, true, guestName);
-          return `Thank you so much for your generosity! I've reserved ${gift.name} for ${guestName}. The couple will be very grateful for your thoughtful gift.`;
+          await this.sheetsClient.updateGiftStatus(giftId, quantity, guestName);
+          return `Thank you so much for your generosity! I've reserved ${quantity} of ${gift.name} for ${guestName}. The couple will be very grateful for your thoughtful gift.`;
         },
       }),
       new DynamicTool({
@@ -123,8 +130,8 @@ export class HousewarmingAgent {
           return JSON.stringify({
             id: match.id,
             name: match.name,
-            quantity: match.quantity,
-            reserved: match.reserved,
+            quantityNeeded: match.quantityNeeded,
+            quantityReserved: match.quantityReserved,
             reservedBy: match.reservedBy,
           });
         },
@@ -159,10 +166,10 @@ When someone asks what the couple needs:
 4. Format the list as bullet points with the remaining quantity in parentheses
 
 When someone offers to get an item:
-1. If they mention an item by name (even with typos), use the findGiftByName tool to find the correct item
-2. Ask politely for their name (or group name)
-3. Use the reserveGift tool to update the reservation in the system
-4. Confirm what was reserved and thank them warmly
+1. If they mention an item by name (even with typos), use the findGiftByName tool to find the correct item.
+2. Ask politely for their name (or group name) AND the quantity they wish to reserve (if the item has a quantity needed > 1).
+3. Once both are provided, use the reserveGift tool to update the reservation in the system.
+4. Confirm what was reserved and thank them warmly.
 
 Always maintain a warm, polite, and appreciative tone.
 

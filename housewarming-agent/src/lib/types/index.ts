@@ -1,8 +1,8 @@
 export interface GiftItem {
   id: string;
   name: string;
-  quantity: number;
-  reserved: boolean;
+  quantityNeeded: number;
+  quantityReserved: number;
   reservedBy?: string;
 }
 
