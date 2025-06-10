@@ -9,7 +9,7 @@ export default function MessageList({ messages }: MessageListProps) {
     <div className="space-y-4">
       {messages.length === 0 && (
         <div className="text-center text-gray-500 py-8">
-          Start a conversation with Gwen and Steve! 🏠
+          Start a conversation with Paisehkias! 🏠
         </div>
       )}
       {messages.map((message) => (
