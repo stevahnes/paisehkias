@@ -26,7 +26,13 @@ export default function ChatInterface() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({
+          message: content,
+          chat_history: messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+        }),
       });
 
       const data = await response.json();
@@ -47,7 +53,7 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto p-4">
+    <div className="flex flex-col flex-grow max-w-2xl mx-auto p-4 bg-gradient-to-br from-purple-100 via-blue-100 to-green-100 shadow-lg rounded-lg">
       <div className="flex-1 overflow-y-auto mb-4">
         <MessageList messages={messages} />
       </div>

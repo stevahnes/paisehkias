@@ -1,10 +1,12 @@
 import { Inter } from "next/font/google";
+import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Housewarming Gift Assistant",
-  description: "An AI agent to help friends choose housewarming gifts",
+  title: "Paisehkias",
+  description:
+    "Here to help you answer what Gwen and Steve needs, because they are too paiseh to ask 🤭",
 };
 
 export default function RootLayout({
@@ -13,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.className}>
-      <body>{children}</body>
+    <html lang="en" className={`${inter.className} h-full`}>
+      <body className="flex flex-col h-full">{children}</body>
     </html>
   );
 }

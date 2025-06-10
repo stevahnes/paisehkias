@@ -15,13 +15,13 @@ export default function MessageList({ messages }: MessageListProps) {
           }`}
         >
           <div
-            className={`max-w-[80%] rounded-lg p-4 ${
+            className={`max-w-[80%] rounded-xl p-4 shadow-md ${
               message.role === "user"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-100 text-gray-900"
+                ? "bg-purple-400 text-white"
+                : "bg-purple-100 text-gray-800"
             }`}
           >
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            <p className="whitespace-pre-wrap text-left">{message.content}</p>
             <span className="text-xs opacity-70">
               {message.timestamp.toLocaleTimeString()}
             </span>

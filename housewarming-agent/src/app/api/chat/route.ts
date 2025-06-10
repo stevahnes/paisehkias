@@ -11,23 +11,25 @@ const agent = new HousewarmingAgent(sheetsClient);
 
 export async function POST(request: Request) {
   try {
-    const { message } = await request.json();
+    const { message, chat_history } = await request.json();
 
     if (!message) {
-      return NextResponse.json(
-        { error: "Message is required" },
-        { status: 400 }
-      );
+      return new Response(JSON.stringify({ error: "Message is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    const response = await agent.chat(message);
+    const response = await agent.chat(message, chat_history);
 
-    return NextResponse.json({ response });
+    return new Response(JSON.stringify({ response }), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error in chat API:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }

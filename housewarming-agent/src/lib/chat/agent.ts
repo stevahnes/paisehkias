@@ -6,6 +6,7 @@ import {
 import { GoogleSheetsClient } from "../sheets/client";
 import { GiftItem } from "../types";
 import { DynamicTool } from "langchain/tools";
+import { HumanMessage, AIMessage } from "@langchain/core/messages";
 
 export class HousewarmingAgent {
   private executor: AgentExecutor | undefined;
@@ -50,20 +51,28 @@ export class HousewarmingAgent {
     });
   }
 
-  async chat(message: string): Promise<string> {
-    try {
-      if (!this.executor) {
-        console.warn("Agent not initialized. Initializing now...");
-        await this.init();
-      }
-      const result = await this.executor!.call({
-        input: message,
-      });
-
-      return result.output;
-    } catch (error) {
-      console.error("Error in chat:", error);
-      return "I apologize, but I encountered an error. Please try again.";
+  async chat(
+    message: string,
+    chat_history: { role: string; content: string }[]
+  ): Promise<string> {
+    if (!this.executor) {
+      console.warn("Agent not initialized. Initializing now...");
+      await this.init();
     }
+
+    const formattedChatHistory = chat_history.map((msg) => {
+      if (msg.role === "user") {
+        return new HumanMessage(msg.content);
+      } else {
+        return new AIMessage(msg.content);
+      }
+    });
+
+    const result = await this.executor!.call({
+      input: message,
+      chat_history: formattedChatHistory,
+    });
+
+    return result.output;
   }
 }
