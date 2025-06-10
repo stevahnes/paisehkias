@@ -68,7 +68,7 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-96 max-w-2xl mx-auto bg-gradient-to-br from-purple-100 via-blue-100 to-green-100 shadow-lg rounded-lg">
+    <div className="flex flex-col h-full max-w-2xl mx-auto bg-gradient-to-br from-purple-100 via-blue-100 to-green-100 shadow-lg rounded-lg">
       <div className="flex-1 overflow-y-auto p-4">
         <MessageList messages={messages} />
       </div>
