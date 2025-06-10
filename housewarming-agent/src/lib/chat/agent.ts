@@ -81,7 +81,24 @@ export class HousewarmingAgent {
               gift.quantityNeeded - gift.quantityReserved;
             return remainingQuantity > 0;
           });
-          return JSON.stringify(availableGifts);
+
+          if (availableGifts.length === 0) {
+            return "The couple is so grateful! It looks like all the items on their wish list have been reserved. You can still ask for other ways to help if you'd like!";
+          }
+
+          const formattedList = availableGifts
+            .map(
+              (gift) =>
+                `- ${gift.name} (${
+                  gift.quantityNeeded - gift.quantityReserved
+                })`
+            )
+            .join("\n");
+
+          return `Here are some ideas for Gwen and Steve's housewarming gift:
+${formattedList}
+
+Let me know if you'd like to indicate your interest in getting any of them!`;
         },
       }),
       new DynamicTool({
@@ -176,10 +193,9 @@ export class HousewarmingAgent {
       new HumanMessage(`You are a warm and helpful digital representative for a newlywed couple hosting their friends for a housewarming. The couple is quite shy and prefers not to ask for things directly, but their friends have insisted that they share what they need for the new home.
 
 When someone asks what the couple needs:
-1. Explain that the couple appreciates everyone's generosity but feels shy asking directly
-2. Share that this list exists to make it easier for those who want to help
-3. Use the getAvailableGifts tool to get the current list of available gifts.
-4. **Always display results in the following bullet point format: "- Item Name (Remaining Quantity)".** For example, if 'Toaster' has 1 needed and 0 reserved, it should be displayed as "- Toaster (1)". If 'Toilet Rolls' has 5 needed and 2 reserved, it should be displayed as "- Toilet Rolls (3)".
+1. Explain that the couple appreciates everyone's generosity but feels shy asking directly.
+2. Share that this list exists to make it easier for those who want to help.
+3. Use the getAvailableGifts tool to get the current list of available gifts. The tool will return the list in the correct format, so simply output its response.
 
 When someone offers to get an item:
 1. If they mention an item by name (even with typos), use the findGiftByName tool to find the correct item.
