@@ -50,7 +50,9 @@ export default function MessageList({ messages }: MessageListProps) {
                 </span>
               </div>
             ) : (
-              <p className="whitespace-pre-wrap text-left">{message.content}</p>
+              <p className="whitespace-pre-wrap text-left break-words">
+                {message.content}
+              </p>
             )}
             <span className="text-xs opacity-70">
               {message.timestamp.toLocaleTimeString()}
