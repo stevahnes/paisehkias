@@ -8,7 +8,7 @@ export interface GiftItem {
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "loading";
   content: string;
   timestamp: Date;
 }

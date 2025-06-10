@@ -15,13 +15,43 @@ export default function MessageList({ messages }: MessageListProps) {
           }`}
         >
           <div
-            className={`max-w-[80%] rounded-xl p-4 shadow-md ${
-              message.role === "user"
-                ? "bg-purple-400 text-white"
-                : "bg-purple-100 text-gray-800"
-            }`}
+            className={`max-w-[80%] rounded-xl p-4 shadow-md ${(() => {
+              switch (message.role) {
+                case "user":
+                  return "bg-purple-400 text-white";
+                case "assistant":
+                  return "bg-purple-100 text-gray-800";
+                case "loading":
+                  return "bg-purple-100 text-gray-800";
+                default:
+                  return "";
+              }
+            })()}`}
           >
-            <p className="whitespace-pre-wrap text-left">{message.content}</p>
+            {message.role === "loading" ? (
+              <div className="flex space-x-1">
+                <span
+                  className="animate-bounce"
+                  style={{ animationDelay: "0s" }}
+                >
+                  .
+                </span>
+                <span
+                  className="animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                >
+                  .
+                </span>
+                <span
+                  className="animate-bounce"
+                  style={{ animationDelay: "0.4s" }}
+                >
+                  .
+                </span>
+              </div>
+            ) : (
+              <p className="whitespace-pre-wrap text-left">{message.content}</p>
+            )}
             <span className="text-xs opacity-70">
               {message.timestamp.toLocaleTimeString()}
             </span>

@@ -20,6 +20,14 @@ export default function ChatInterface() {
     setMessages((prev) => [...prev, newMessage]);
     setIsLoading(true);
 
+    const loadingMessage: ChatMessage = {
+      id: "loading-indicator",
+      role: "loading",
+      content: "",
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, loadingMessage]);
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -37,6 +45,10 @@ export default function ChatInterface() {
 
       const data = await response.json();
 
+      setMessages((prev) =>
+        prev.filter((msg) => msg.id !== "loading-indicator")
+      );
+
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -47,6 +59,9 @@ export default function ChatInterface() {
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
+      setMessages((prev) =>
+        prev.filter((msg) => msg.id !== "loading-indicator")
+      );
     } finally {
       setIsLoading(false);
     }
