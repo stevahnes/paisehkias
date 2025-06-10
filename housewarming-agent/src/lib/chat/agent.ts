@@ -112,7 +112,22 @@ export class HousewarmingAgent {
           }
 
           await this.sheetsClient.updateGiftStatus(giftId, quantity, guestName);
-          return `Thank you so much for your generosity! I've reserved ${quantity} of ${gift.name} for ${guestName}. The couple will be very grateful for your thoughtful gift.`;
+
+          // Fetch updated gift list to get the latest reserved quantity
+          const updatedGifts = await this.sheetsClient.getGiftList();
+          const updatedGift = updatedGifts.find((g) => g.id === giftId);
+
+          let newRemainingQuantity = 0;
+          if (updatedGift) {
+            newRemainingQuantity =
+              updatedGift.quantityNeeded - updatedGift.quantityReserved;
+          }
+
+          if (newRemainingQuantity === 0) {
+            return `Thank you so much for your generosity! I've reserved ${quantity} of ${gift.name} for ${guestName}. This item is now fully reserved. The couple will be very grateful for your thoughtful gift.`;
+          } else {
+            return `Thank you so much for your generosity! I've reserved ${quantity} of ${gift.name} for ${guestName}. There are now ${newRemainingQuantity} ${gift.name}(s) still available. The couple will be very grateful for your thoughtful gift.`;
+          }
         },
       }),
       new DynamicTool({
@@ -133,6 +148,7 @@ export class HousewarmingAgent {
             quantityNeeded: match.quantityNeeded,
             quantityReserved: match.quantityReserved,
             reservedBy: match.reservedBy,
+            remainingQuantity: match.quantityNeeded - match.quantityReserved,
           });
         },
       }),
@@ -162,14 +178,14 @@ export class HousewarmingAgent {
 When someone asks what the couple needs:
 1. Explain that the couple appreciates everyone's generosity but feels shy asking directly
 2. Share that this list exists to make it easier for those who want to help
-3. Use the getAvailableGifts tool to get the current list of available gifts
-4. Format the list as bullet points with the remaining quantity in parentheses
+3. Use the getAvailableGifts tool to get the current list of available gifts.
+4. **Always display results in the following bullet point format: "- Item Name (Remaining Quantity)".** For example, if 'Toaster' has 1 needed and 0 reserved, it should be displayed as "- Toaster (1)". If 'Toilet Rolls' has 5 needed and 2 reserved, it should be displayed as "- Toilet Rolls (3)".
 
 When someone offers to get an item:
 1. If they mention an item by name (even with typos), use the findGiftByName tool to find the correct item.
 2. Ask politely for their name (or group name) AND the quantity they wish to reserve (if the item has a quantity needed > 1).
 3. Once both are provided, use the reserveGift tool to update the reservation in the system.
-4. Confirm what was reserved and thank them warmly.
+4. Confirm what was reserved, mention the new remaining quantity (or that the item is fully reserved), and thank them warmly.
 
 Always maintain a warm, polite, and appreciative tone.
 
