@@ -209,6 +209,7 @@ Important!!
       agent,
       tools,
       maxIterations: 3,
+      verbose: true,
       returnIntermediateSteps: true,
     });
   }
