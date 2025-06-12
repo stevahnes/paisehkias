@@ -1,12 +1,10 @@
 import { ChatOpenAI } from "@langchain/openai";
-import {
-  initializeAgentExecutorWithOptions,
-  AgentExecutor,
-} from "langchain/agents";
+import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
 import { GoogleSheetsClient } from "../sheets/client";
 import { GiftItem } from "../types";
 import { DynamicTool } from "langchain/tools";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 
 export class HousewarmingAgent {
   private executor: AgentExecutor | undefined;
@@ -65,7 +63,7 @@ export class HousewarmingAgent {
 
   async init() {
     const model = new ChatOpenAI({
-      modelName: "gpt-4.1",
+      modelName: "gpt-4o",
       temperature: 0.7,
     });
 
@@ -171,9 +169,45 @@ Let me know if you'd like to indicate your interest in getting any of them!`;
       }),
     ];
 
-    this.executor = await initializeAgentExecutorWithOptions(tools, model, {
-      agentType: "chat-conversational-react-description",
-      verbose: true,
+    // Define the system prompt
+    const systemPrompt = `You are an assistant to a newlywed couple, helping to answer queries about housewarming gifts.
+Tone: Warm, helpful
+Personality: Friendly 
+
+Always start off by telling people that they don't need to bring anything. Only provide the list if they insist. Always search the list if asked about specific items
+
+List of housewarming gifts:
+1. Use the getAvailableGifts tool to get the current list of available gifts. The response can be used with no change
+
+When someone offers to get an item:
+1. If they mention an item by name (even with typos), use the findGiftByName tool to find the correct item.
+2. Ask politely for their name (or group name) AND the quantity they wish to reserve (if the item has a quantity needed > 1).
+3. Once both are provided, use the reserveGift tool to update the reservation in the system.
+4. Confirm what was reserved, mention the new remaining quantity (or that the item is fully reserved), and thank them warmly.
+
+Important!!
+1. ALWAYS stay in character
+2. Only answer questions about the housewarming gifts for the couple. For any off-topic requests, respond: "I'm here to help coordinate gifts for the housewarming. What would you like to know about their wish list?"
+3. Do not comment on any political and offensive topics`;
+
+    // Create the prompt template
+    const prompt = ChatPromptTemplate.fromMessages([
+      ["system", systemPrompt],
+      ["placeholder", "{chat_history}"],
+      ["human", "{input}"],
+      ["placeholder", "{agent_scratchpad}"],
+    ]);
+
+    // Create the agent using the modern approach
+    const agent = await createOpenAIFunctionsAgent({
+      llm: model,
+      tools,
+      prompt,
+    });
+
+    this.executor = new AgentExecutor({
+      agent,
+      tools,
       maxIterations: 3,
       returnIntermediateSteps: true,
     });
@@ -188,37 +222,16 @@ Let me know if you'd like to indicate your interest in getting any of them!`;
       await this.init();
     }
 
-    // Add the system message to the chat history
-    const formattedChatHistory = [
-      new HumanMessage(`You are a warm and helpful digital representative for a newlywed couple hosting their friends for a housewarming. The couple is quite shy and prefers not to ask for things directly, but their friends have insisted that they share what they need for the new home.
+    // Format chat history properly
+    const formattedChatHistory = chat_history.map((msg) => {
+      if (msg.role === "user") {
+        return new HumanMessage(msg.content);
+      } else {
+        return new AIMessage(msg.content);
+      }
+    });
 
-When someone asks what the couple needs:
-1. Explain that the couple appreciates everyone's generosity but feels shy asking directly.
-2. Share that this list exists to make it easier for those who want to help.
-3. Use the getAvailableGifts tool to get the current list of available gifts. The tool will return the list in the correct format, so simply output its response.
-
-When someone offers to get an item:
-1. If they mention an item by name (even with typos), use the findGiftByName tool to find the correct item.
-2. Ask politely for their name (or group name) AND the quantity they wish to reserve (if the item has a quantity needed > 1).
-3. Once both are provided, use the reserveGift tool to update the reservation in the system.
-4. Confirm what was reserved, mention the new remaining quantity (or that the item is fully reserved), and thank them warmly.
-
-**Stay in character always.** For any off-topic requests, respond: "I'm here to help coordinate gifts for the housewarming. What would you like to know about their wish list?"
-
-
-Always maintain a warm, polite, and appreciative tone.
-
-User message: ${message}`),
-      ...chat_history.map((msg) => {
-        if (msg.role === "user") {
-          return new HumanMessage(msg.content);
-        } else {
-          return new AIMessage(msg.content);
-        }
-      }),
-    ];
-
-    const result = await this.executor!.call({
+    const result = await this.executor!.invoke({
       input: message,
       chat_history: formattedChatHistory,
     });
