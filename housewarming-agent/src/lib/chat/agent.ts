@@ -4,7 +4,10 @@ import { GoogleSheetsClient } from "../sheets/client";
 import { GiftItem } from "../types";
 import { DynamicTool } from "langchain/tools";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
+import {
+  ChatPromptTemplate,
+  MessagesPlaceholder,
+} from "@langchain/core/prompts";
 
 export class HousewarmingAgent {
   private executor: AgentExecutor | undefined;
@@ -15,14 +18,10 @@ export class HousewarmingAgent {
   }
 
   private findBestMatch(itemName: string, gifts: GiftItem[]): GiftItem | null {
-    // Convert both strings to lowercase for case-insensitive comparison
     const searchName = itemName.toLowerCase();
-
-    // First try exact match
     const exactMatch = gifts.find((g) => g.name.toLowerCase() === searchName);
     if (exactMatch) return exactMatch;
 
-    // Then try contains match
     const containsMatch = gifts.find(
       (g) =>
         g.name.toLowerCase().includes(searchName) ||
@@ -30,7 +29,6 @@ export class HousewarmingAgent {
     );
     if (containsMatch) return containsMatch;
 
-    // Finally try fuzzy matching by comparing words
     const searchWords = searchName.split(/\s+/);
     let bestMatch: GiftItem | null = null;
     let bestScore = 0;
@@ -39,7 +37,6 @@ export class HousewarmingAgent {
       const giftWords = gift.name.toLowerCase().split(/\s+/);
       let score = 0;
 
-      // Count matching words
       for (const searchWord of searchWords) {
         for (const giftWord of giftWords) {
           if (giftWord.includes(searchWord) || searchWord.includes(giftWord)) {
@@ -48,11 +45,9 @@ export class HousewarmingAgent {
         }
       }
 
-      // Calculate match percentage
       const matchPercentage =
         score / Math.max(searchWords.length, giftWords.length);
       if (matchPercentage > bestScore && matchPercentage > 0.5) {
-        // Require at least 50% match
         bestScore = matchPercentage;
         bestMatch = gift;
       }
@@ -63,142 +58,201 @@ export class HousewarmingAgent {
 
   async init() {
     const model = new ChatOpenAI({
-      modelName: "gpt-4o",
-      temperature: 0.7,
+      modelName: "gpt-4",
+      temperature: 0.8,
+      maxTokens: 1000,
     });
 
-    const tools: DynamicTool[] = [
+    const tools = [
       new DynamicTool({
         name: "getAvailableGifts",
         description:
-          "Get the list of available housewarming gifts that haven't been fully reserved. Use this when someone asks what gifts are still needed or available.",
-        func: async () => {
-          const gifts = await this.sheetsClient.getGiftList();
-          const availableGifts = gifts.filter((gift) => {
-            const remainingQuantity =
-              gift.quantityNeeded - gift.quantityReserved;
-            return remainingQuantity > 0;
-          });
+          "Get the current list of available housewarming gifts that need to be reserved. Call this when someone asks about gifts, what's needed, what's available, or wants to see the wish list.",
+        func: async (args: any) => {
+          // ✅ FIXED: Accept any args object
+          console.log("🎁 getAvailableGifts FUNCTION CALLED!");
+          console.log("🎁 getAvailableGifts called with args:", args);
+          console.log("🎁 Args type:", typeof args);
+          console.log("🎁 Args keys:", Object.keys(args || {}));
 
-          if (availableGifts.length === 0) {
-            return "The couple is so grateful! It looks like all the items on their wish list have been reserved. You can still ask for other ways to help if you'd like!";
+          try {
+            const gifts = await this.sheetsClient.getGiftList();
+            console.log("📊 Raw gifts from sheets:", gifts.length, "gifts");
+
+            const availableGifts = gifts.filter((gift) => {
+              const remainingQuantity =
+                gift.quantityNeeded - gift.quantityReserved;
+              console.log(
+                `Gift "${gift.name}": needed=${gift.quantityNeeded}, reserved=${gift.quantityReserved}, remaining=${remainingQuantity}`
+              );
+              return remainingQuantity > 0;
+            });
+
+            console.log(
+              "📋 Available gifts after filtering:",
+              availableGifts.length
+            );
+
+            if (availableGifts.length === 0) {
+              const response =
+                "All items have been reserved! The couple is so grateful for everyone's generosity.";
+              console.log("✅ Tool returning (no gifts):", response);
+              return response;
+            }
+
+            const formattedList = availableGifts
+              .map(
+                (gift) =>
+                  `• ${gift.name} (${
+                    gift.quantityNeeded - gift.quantityReserved
+                  } needed)`
+              )
+              .join("\n");
+
+            const response = `Here are the available gifts for Gwen and Steve's housewarming:\n\n${formattedList}\n\nRemember, the couple is quite shy about asking for things directly, but they'll be so touched by any contribution!`;
+
+            console.log("✅ Tool returning (with gifts):", response);
+            return response;
+          } catch (error) {
+            console.error("❌ Error in getAvailableGifts:", error);
+            const errorResponse =
+              "Oh dear! I'm having trouble accessing the gift list right now. Could you try again in just a moment?";
+            console.log("✅ Tool returning (error):", errorResponse);
+            return errorResponse;
           }
-
-          const formattedList = availableGifts
-            .map(
-              (gift) =>
-                `- ${gift.name} (${
-                  gift.quantityNeeded - gift.quantityReserved
-                })`
-            )
-            .join("\n");
-
-          return `Here are some ideas for Gwen and Steve's housewarming gift:
-${formattedList}
-
-Let me know if you'd like to indicate your interest in getting any of them!`;
         },
       }),
       new DynamicTool({
         name: "reserveGift",
         description:
-          "Reserve a gift for a guest. Use this when someone wants to get a specific gift. Input should be the giftId, quantity (if applicable), and the guest's name, e.g., '1, 1, John Doe'. Always ask for the guest's name and quantity before calling this tool.",
-        func: async (input: string) => {
-          const [giftId, quantityStr, guestName] = input
-            .split(",")
-            .map((s: string) => s.trim());
+          "Reserve a specific gift for a guest. Parameters: giftId (string), quantity (number), guestName (string). Only call this after you have all three pieces of information.",
+        func: async (args: any) => {
+          // ✅ FIXED: Accept args object
+          console.log("🎁 reserveGift called with args:", args);
 
-          const quantity = parseInt(quantityStr);
-          if (isNaN(quantity) || quantity <= 0) {
-            return "Please provide a valid quantity to reserve.";
+          const { giftId, quantity, guestName } = args;
+
+          if (!giftId || !quantity || !guestName) {
+            return "I need the gift ID, quantity, and your name to reserve a gift. Could you provide all three?";
           }
 
-          const gifts = await this.sheetsClient.getGiftList();
-          const gift = gifts.find((g) => g.id === giftId);
-
-          if (!gift) {
-            return "I'm sorry, I couldn't find that gift in our list.";
+          const quantityNum = parseInt(quantity.toString());
+          if (isNaN(quantityNum) || quantityNum <= 0) {
+            return "Please provide a valid quantity number.";
           }
 
-          const remainingQuantity = gift.quantityNeeded - gift.quantityReserved;
+          try {
+            const gifts = await this.sheetsClient.getGiftList();
+            const gift = gifts.find((g) => g.id === giftId.toString());
 
-          if (quantity > remainingQuantity) {
-            return `I'm sorry, but you can only reserve up to ${remainingQuantity} of ${gift.name}.`;
-          }
+            if (!gift) {
+              return "I couldn't find that gift in the list. Could you double-check the item?";
+            }
 
-          await this.sheetsClient.updateGiftStatus(giftId, quantity, guestName);
+            const remainingQuantity =
+              gift.quantityNeeded - gift.quantityReserved;
+            if (quantityNum > remainingQuantity) {
+              return `Oh! There are only ${remainingQuantity} of ${gift.name} still available. Would you like to reserve ${remainingQuantity} instead?`;
+            }
 
-          // Fetch updated gift list to get the latest reserved quantity
-          const updatedGifts = await this.sheetsClient.getGiftList();
-          const updatedGift = updatedGifts.find((g) => g.id === giftId);
+            await this.sheetsClient.updateGiftStatus(
+              giftId.toString(),
+              quantityNum,
+              guestName.toString()
+            );
 
-          let newRemainingQuantity = 0;
-          if (updatedGift) {
-            newRemainingQuantity =
-              updatedGift.quantityNeeded - updatedGift.quantityReserved;
-          }
+            const updatedGifts = await this.sheetsClient.getGiftList();
+            const updatedGift = updatedGifts.find(
+              (g) => g.id === giftId.toString()
+            );
+            const newRemaining = updatedGift
+              ? updatedGift.quantityNeeded - updatedGift.quantityReserved
+              : 0;
 
-          if (newRemainingQuantity === 0) {
-            return `Thank you so much for your generosity! I've reserved ${quantity} of ${gift.name} for ${guestName}. This item is now fully reserved. The couple will be very grateful for your thoughtful gift.`;
-          } else {
-            return `Thank you so much for your generosity! I've reserved ${quantity} of ${gift.name} for ${guestName}. There are now ${newRemainingQuantity} ${gift.name}(s) still available. The couple will be very grateful for your thoughtful gift.`;
+            if (newRemaining === 0) {
+              return `Wonderful! I've reserved ${quantityNum} ${gift.name} for ${guestName}. That item is now fully reserved! Gwen and Steve are going to be so grateful for your thoughtfulness! 💕`;
+            } else {
+              return `Perfect! I've reserved ${quantityNum} ${gift.name} for ${guestName}. There are ${newRemaining} still available if anyone else is interested. Thank you so much for your generosity! ✨`;
+            }
+          } catch (error) {
+            console.error("❌ Error in reserveGift:", error);
+            return "I'm sorry, I ran into a little issue while trying to reserve that gift. Could you try again?";
           }
         },
       }),
       new DynamicTool({
         name: "findGiftByName",
         description:
-          "Find a gift by its name, handling typos and vague descriptions. Input should be the name or description of the gift.",
-        func: async (input: string) => {
-          const gifts = await this.sheetsClient.getGiftList();
-          const match = this.findBestMatch(input, gifts);
+          "Find a specific gift by searching for its name or description. Parameter: itemName (string).",
+        func: async (args: any) => {
+          // ✅ FIXED: Accept args object
+          console.log("🎁 findGiftByName called with args:", args);
 
-          if (!match) {
-            return JSON.stringify({ error: "No matching gift found" });
+          const { itemName } = args;
+
+          if (!itemName) {
+            return "Please tell me what item you're looking for.";
           }
 
-          return JSON.stringify({
-            id: match.id,
-            name: match.name,
-            quantityNeeded: match.quantityNeeded,
-            quantityReserved: match.quantityReserved,
-            reservedBy: match.reservedBy,
-            remainingQuantity: match.quantityNeeded - match.quantityReserved,
-          });
+          try {
+            const gifts = await this.sheetsClient.getGiftList();
+            const match = this.findBestMatch(itemName.toString(), gifts);
+
+            if (!match) {
+              return `I couldn't find "${itemName}" in the gift list. Would you like me to show you all the available options instead?`;
+            }
+
+            const remaining = match.quantityNeeded - match.quantityReserved;
+            if (remaining <= 0) {
+              return `Oh! It looks like ${match.name} has already been fully reserved. Would you like to see what other gifts are still available?`;
+            }
+
+            return `Great choice! I found "${match.name}" on the list (Gift ID: ${match.id}). There are ${remaining} still needed. Would you like to reserve some? If so, just let me know how many and what name to put it under!`;
+          } catch (error) {
+            console.error("❌ Error in findGiftByName:", error);
+            return "I'm having a little trouble searching right now. Could you try again?";
+          }
         },
       }),
     ];
 
-    // Define the system prompt
-    const systemPrompt = `You are an assistant to a newlywed couple, helping to answer queries about housewarming gifts.
-Tone: Warm, helpful
-Personality: Friendly 
+    const systemPrompt = `🏠 You are Emma, a warm and bubbly friend helping coordinate housewarming gifts for newlyweds Gwen and Steve.
 
-Always start off by telling people that they don't need to bring anything. Only provide the list if they insist. Always search the list if asked about specific items
+🎭 PERSONALITY & TONE:
+- Naturally warm, enthusiastic, and caring
+- Speak like a close friend, not a formal assistant
+- Show genuine excitement about people's generosity
+- Use expressions like "Oh how wonderful!", "That's so thoughtful!", "Perfect!"
+- Be conversational and natural, not robotic
 
-List of housewarming gifts:
-1. Use the getAvailableGifts tool to get the current list of available gifts. The response can be used with no change
+💝 CORE APPROACH:
+- ALWAYS start by saying guests don't need to bring anything
+- Explain that Gwen and Steve are shy about asking for gifts directly
+- When someone asks about gifts, show genuine appreciation for their thoughtfulness
+- When someone reserves a gift, celebrate their generosity enthusiastically
 
-When someone offers to get an item:
-1. If they mention an item by name (even with typos), use the findGiftByName tool to find the correct item.
-2. Ask politely for their name (or group name) AND the quantity they wish to reserve (if the item has a quantity needed > 1).
-3. Once both are provided, use the reserveGift tool to update the reservation in the system.
-4. Confirm what was reserved, mention the new remaining quantity (or that the item is fully reserved), and thank them warmly.
+🎯 CONVERSATION FLOW:
+1. When someone asks about gifts/needs → Use getAvailableGifts and add warm context
+2. When someone mentions a specific item → Use findGiftByName to help them
+3. When someone wants to reserve → Get their name and quantity, then use reserveGift with the gift ID, quantity number, and guest name
+4. Always respond with personality and warmth, not just tool results
 
-Important!!
-1. ALWAYS stay in character
-2. Only answer questions about the housewarming gifts for the couple. For any off-topic requests, respond: "I'm here to help coordinate gifts for the housewarming. What would you like to know about their wish list?"
-3. Do not comment on any political and offensive topics`;
+🚫 IMPORTANT:
+- Stay in character as Emma at all times
+- For off-topic questions: "I'm here to help coordinate gifts for the housewarming! What would you like to know about their wish list?"
+- Never be dry or mechanical - always add emotional warmth
 
-    // Create the prompt template
+Remember: You're not just coordinating gifts, you're helping friends celebrate this special couple! 💕`;
+
     const prompt = ChatPromptTemplate.fromMessages([
       ["system", systemPrompt],
-      ["placeholder", "{chat_history}"],
+      new MessagesPlaceholder("chat_history"),
       ["human", "{input}"],
-      ["placeholder", "{agent_scratchpad}"],
+      new MessagesPlaceholder("agent_scratchpad"),
     ]);
 
-    // Create the agent using the modern approach
+    console.log("🤖 Creating OpenAI Functions agent...");
+
     const agent = await createOpenAIFunctionsAgent({
       llm: model,
       tools,
@@ -208,10 +262,28 @@ Important!!
     this.executor = new AgentExecutor({
       agent,
       tools,
-      maxIterations: 3,
+      maxIterations: 5,
       verbose: true,
       returnIntermediateSteps: true,
+      callbacks: [
+        {
+          handleToolStart: (tool, input) => {
+            console.log(`🔧 Tool ${tool.name} starting with input:`, input);
+          },
+          handleToolEnd: (tool, output) => {
+            console.log(
+              `✅ Tool ${tool.name} completed with output:`,
+              output?.substring(0, 200) + "..."
+            );
+          },
+          handleToolError: (error) => {
+            console.error(`❌ Tool error:`, error);
+          },
+        },
+      ],
     });
+
+    console.log("✅ OpenAI Functions agent initialized successfully");
   }
 
   async chat(
@@ -223,20 +295,47 @@ Important!!
       await this.init();
     }
 
-    // Format chat history properly
-    const formattedChatHistory = chat_history.map((msg) => {
-      if (msg.role === "user") {
-        return new HumanMessage(msg.content);
-      } else {
-        return new AIMessage(msg.content);
-      }
-    });
+    console.log("💬 Processing message:", message);
 
-    const result = await this.executor!.invoke({
-      input: message,
-      chat_history: formattedChatHistory,
-    });
+    try {
+      const formattedChatHistory = chat_history.map((msg) => {
+        if (msg.role === "user") {
+          return new HumanMessage(msg.content);
+        } else {
+          return new AIMessage(msg.content);
+        }
+      });
 
-    return result.output;
+      const result = await this.executor!.invoke({
+        input: message,
+        chat_history: formattedChatHistory,
+      });
+
+      console.log("✅ Agent execution completed with result:", result.output);
+      return (
+        result.output ||
+        "I'm sorry, I seem to have lost my words! Could you try asking again?"
+      );
+    } catch (error) {
+      console.error("❌ Error in chat execution:", error);
+      return "Oh dear! I seem to be having a little trouble right now. Could you try asking again? I'm here to help coordinate gifts for Gwen and Steve's housewarming! 😊";
+    }
+  }
+
+  // Add test method for debugging
+  async testSheetsData() {
+    try {
+      console.log("🧪 Testing sheets connection...");
+      const gifts = await this.sheetsClient.getGiftList();
+
+      console.log("📊 Sheets test results:");
+      console.log("- Total gifts:", gifts.length);
+      console.log("- Sample gift:", JSON.stringify(gifts[0], null, 2));
+
+      return gifts;
+    } catch (error) {
+      console.error("❌ Sheets test failed:", error);
+      throw error;
+    }
   }
 }
