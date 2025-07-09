@@ -9,6 +9,16 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        paiseh: {
+          DEFAULT: "#7c3aed", // main purple
+          light: "#ede9fe",
+          dark: "#4c1d95",
+          accent: "#fbbf24", // yellow accent
+          bg: "#f8f6ff",
+          bubble: "#f3f7fa",
+        },
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic":

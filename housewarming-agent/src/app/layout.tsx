@@ -12,8 +12,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`h-screen`}>
-      <body className="h-screen overflow-hidden">{children}</body>
+    <html
+      lang="en"
+      className="h-full bg-gradient-to-br from-[#f8f6ff] via-[#f3f7fa] to-[#e6f0ff]"
+    >
+      <body className="h-full min-h-screen w-full overflow-hidden flex flex-col">
+        {children}
+      </body>
     </html>
   );
 }
