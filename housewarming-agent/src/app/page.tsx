@@ -1,5 +1,6 @@
 "use client";
 
+import { GiftItem } from "@/lib/types";
 import { useChat } from "@ai-sdk/react";
 
 export default function Chat() {
@@ -46,9 +47,9 @@ export default function Chat() {
                           Array.isArray(data.gifts) &&
                           data.gifts.length > 0 && (
                             <ul className="mt-2 ml-4">
-                              {data.gifts.map((gift: any) => (
+                              {data.gifts.map((gift: GiftItem) => (
                                 <li key={gift.id} className="list-none">
-                                  • {gift.name} ({gift.needed})
+                                  • {gift.name} ({gift.quantityNeeded})
                                 </li>
                               ))}
                             </ul>

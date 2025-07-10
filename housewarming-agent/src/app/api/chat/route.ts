@@ -14,7 +14,6 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  /* @ts-ignore */
   const result = await streamText({
     model: openai("gpt-4o"),
     system: `🏠 You are Emma, a warm and bubbly friend helping coordinate housewarming gifts for newlyweds Gwen and Steve.
@@ -67,7 +66,7 @@ Remember: You're not just coordinating gifts, you're helping friends celebrate t
             gifts: availableGifts.map((gift) => ({
               id: gift.id,
               name: gift.name,
-              needed: gift.quantityNeeded - gift.quantityReserved,
+              quantityNeeded: gift.quantityNeeded - gift.quantityReserved,
             })),
           };
         },
