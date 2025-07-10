@@ -17,6 +17,12 @@ const config: Config = {
           accent: "#fbbf24", // yellow accent
           bg: "#f8f6ff",
           bubble: "#f3f7fa",
+          // Updated color scheme to match screenshot
+          purple: "#7c3aed",
+          "purple-dark": "#6d28d9",
+          text: "#4b5563",
+          "user-bubble": "#e5e7eb",
+          border: "#e5e7eb",
         },
       },
       backgroundImage: {

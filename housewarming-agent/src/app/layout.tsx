@@ -14,9 +14,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full bg-gradient-to-br from-[#f8f6ff] via-[#f3f7fa] to-[#e6f0ff]"
+      className="h-full bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50"
     >
-      <body className="h-full min-h-screen w-full overflow-hidden flex flex-col">
+      <body className="h-full min-h-screen w-full bg-paiseh-bg">
         {children}
       </body>
     </html>
