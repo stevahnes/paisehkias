@@ -12,10 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      className="h-full bg-linear-to-br from-purple-50 via-blue-50 to-cyan-50"
-    >
+    <html lang="en" className="h-full">
       <body className="h-full min-h-screen w-full bg-purple-50">
         {children}
       </body>

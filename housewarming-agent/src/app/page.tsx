@@ -10,7 +10,7 @@ export default function Chat() {
     <div className="flex flex-col h-screen w-full max-w-2xl mx-auto relative">
       {/* Header */}
       <div className="flex-shrink-0 text-center pt-8 pb-6 px-4">
-        <h1 className="text-4xl font-bold text-purple-600 mb-2">Paisehkias</h1>
+        <h1 className="text-6xl font-bold text-purple-600 mb-2">Paisehkias</h1>
         <p className="text-gray-600 text-lg">
           Here to help you answer what Gwen and Steve needs, because they are
           too paiseh to ask 🤭
@@ -44,6 +44,8 @@ export default function Chat() {
               }
             >
               {message.parts.map((part, i) => {
+                console.log("Part type:", part.type);
+                console.log("Message ID:", message.id);
                 switch (part.type) {
                   case "text":
                     return <div key={`${message.id}-${i}`}>{part.text}</div>;
