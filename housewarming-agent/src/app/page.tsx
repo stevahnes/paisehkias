@@ -10,10 +10,8 @@ export default function Chat() {
     <div className="flex flex-col h-screen w-full max-w-2xl mx-auto relative">
       {/* Header */}
       <div className="flex-shrink-0 text-center pt-8 pb-6 px-4">
-        <h1 className="text-4xl font-bold text-paiseh-purple mb-2">
-          Paisehkias
-        </h1>
-        <p className="text-paiseh-text text-lg">
+        <h1 className="text-4xl font-bold text-purple-600 mb-2">Paisehkias</h1>
+        <p className="text-gray-600 text-lg">
           Here to help you answer what Gwen and Steve needs, because they are
           too paiseh to ask 🤭
         </p>
@@ -32,8 +30,8 @@ export default function Chat() {
             <div
               className={
                 message.role === "user"
-                  ? "text-right text-paiseh-purple font-semibold"
-                  : "text-left text-paiseh-text font-semibold"
+                  ? "text-right text-purple-600 font-semibold"
+                  : "text-left text-gray-600 font-semibold"
               }
             >
               {message.role === "user" ? "You" : "Emma"}
@@ -41,8 +39,8 @@ export default function Chat() {
             <div
               className={
                 message.role === "user"
-                  ? "bg-paiseh-user-bubble text-paiseh-text inline-block rounded-2xl px-5 py-3 ml-auto max-w-[80%] shadow-sm"
-                  : "bg-white text-paiseh-text inline-block rounded-2xl px-5 py-3 mr-auto max-w-[80%] shadow-sm border border-paiseh-border"
+                  ? "bg-gray-200 text-gray-600 inline-block rounded-2xl px-5 py-3 ml-auto max-w-[80%] shadow-sm"
+                  : "bg-white text-gray-600 inline-block rounded-2xl px-5 py-3 mr-auto max-w-[80%] shadow-sm border border-gray-200"
               }
             >
               {message.parts.map((part, i) => {
@@ -81,13 +79,13 @@ export default function Chat() {
       </div>
 
       {/* Input Container - positioned absolutely within the chat container */}
-      <div className="flex bottom-0 left-0 right-0 bg-gradient-to-t from-paiseh-bg from-70% via-paiseh-bg/90 to-transparent pt-8 pb-6 px-4">
+      <div className="flex bottom-0 left-0 right-0 bg-gradient-to-t from-purple-50 from-70% via-purple-50/90 to-transparent pt-8 pb-6 px-4">
         <form
           onSubmit={handleSubmit}
-          className="flex w-full bg-white rounded-full shadow-lg border border-paiseh-border overflow-hidden"
+          className="flex w-full bg-white rounded-full shadow-lg border border-gray-200 overflow-hidden"
         >
           <input
-            className="flex-1 px-6 py-4 border-none bg-transparent focus:outline-none text-paiseh-text placeholder-paiseh-text/50 text-base"
+            className="flex-1 px-6 py-4 border-none bg-transparent focus:outline-none text-gray-600 placeholder-gray-400 text-base"
             value={input}
             placeholder="Type your message..."
             onChange={handleInputChange}
@@ -95,7 +93,7 @@ export default function Chat() {
           />
           <button
             type="submit"
-            className="px-6 py-4 bg-paiseh-purple text-white font-medium rounded-full hover:bg-paiseh-purple-dark transition-colors text-base"
+            className="px-6 py-4 bg-purple-600 text-white font-medium rounded-full hover:bg-purple-700 transition-colors text-base"
           >
             Send
           </button>
